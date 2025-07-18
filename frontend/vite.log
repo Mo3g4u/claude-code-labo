@@ -1,0 +1,18 @@
+
+> frontend@1.0.0 dev
+> vite
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+  VITE v6.3.5  ready in 315 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: http://192.168.1.2:3000/
+  ➜  Network: http://192.168.1.76:3000/
+  ➜  Network: http://192.168.64.1:3000/
+8:39:52 PM [vite] (client) hmr update /src/App.vue
+8:39:52 PM [vite] (client) ✨ new dependencies optimized: axios
+8:39:52 PM [vite] (client) ✨ optimized dependencies changed. reloading
+8:39:59 PM [vite] (client) hmr update /src/App.vue
+8:40:08 PM [vite] (client) hmr update /src/App.vue
+8:40:14 PM [vite] (client) hmr update /src/App.vue

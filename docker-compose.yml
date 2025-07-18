@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  localstack:
+    container_name: todo-app-localstack
+    image: localstack/localstack:3.0
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=lambda,apigateway,dynamodb,s3,iam,sts
+      - DEBUG=1
+      - DATA_DIR=/var/lib/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOST_TMP_FOLDER=/tmp/localstack
+      - PERSISTENCE=1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/tmp/localstack:/var/lib/localstack"
+      - "./localstack-init:/etc/localstack/init/ready.d"
+    networks:
+      - todo-app-local
+
+  # DynamoDB Admin UI (optional)
+  dynamodb-admin:
+    container_name: todo-app-dynamodb-admin
+    image: aaronshaf/dynamodb-admin:latest
+    ports:
+      - "8001:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://localstack:4566
+      - AWS_REGION=us-east-1
+    depends_on:
+      - localstack
+    networks:
+      - todo-app-local
+
+networks:
+  todo-app-local:
+    driver: bridge

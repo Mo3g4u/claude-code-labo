@@ -1,0 +1,180 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Todo App Backend with Python Lambda
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 128
+    Runtime: python3.11
+    Environment:
+      Variables:
+        TABLE_NAME:
+          Ref: TodosTable
+        POWERTOOLS_SERVICE_NAME: todo-app
+        POWERTOOLS_LOG_LEVEL: INFO
+Resources:
+  TodosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: todos
+      AttributeDefinitions:
+      - AttributeName: user_id
+        AttributeType: S
+      - AttributeName: todo_id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: user_id
+        KeyType: HASH
+      - AttributeName: todo_id
+        KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+  TodoApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: '''GET,POST,PUT,DELETE'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: Todo API
+          version: 1.0.0
+        paths:
+          /todos:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetTodosFunction.Arn}/invocations
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateTodoFunction.Arn}/invocations
+          /todos/{id}:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetTodoFunction.Arn}/invocations
+            put:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateTodoFunction.Arn}/invocations
+            delete:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteTodoFunction.Arn}/invocations
+  GetTodosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetTodosFunction
+      Handler: handlers.get_todos.lambda_handler
+      Events:
+        GetTodos:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: TodoApi
+            Path: /todos
+            Method: get
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: TodosTable
+    Metadata:
+      SamResourceId: GetTodosFunction
+  GetTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetTodoFunction
+      Handler: handlers.get_todo.lambda_handler
+      Events:
+        GetTodo:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: TodoApi
+            Path: /todos/{id}
+            Method: get
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: TodosTable
+    Metadata:
+      SamResourceId: GetTodoFunction
+  CreateTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CreateTodoFunction
+      Handler: handlers.create_todo.lambda_handler
+      Events:
+        CreateTodo:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: TodoApi
+            Path: /todos
+            Method: post
+      Policies:
+      - DynamoDBWritePolicy:
+          TableName:
+            Ref: TodosTable
+    Metadata:
+      SamResourceId: CreateTodoFunction
+  UpdateTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: UpdateTodoFunction
+      Handler: handlers.update_todo.lambda_handler
+      Events:
+        UpdateTodo:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: TodoApi
+            Path: /todos/{id}
+            Method: put
+      Policies:
+      - DynamoDBWritePolicy:
+          TableName:
+            Ref: TodosTable
+    Metadata:
+      SamResourceId: UpdateTodoFunction
+  DeleteTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: DeleteTodoFunction
+      Handler: handlers.delete_todo.lambda_handler
+      Events:
+        DeleteTodo:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: TodoApi
+            Path: /todos/{id}
+            Method: delete
+      Policies:
+      - DynamoDBWritePolicy:
+          TableName:
+            Ref: TodosTable
+    Metadata:
+      SamResourceId: DeleteTodoFunction
+Outputs:
+  TodoApi:
+    Description: API Gateway endpoint URL for dev stage
+    Value:
+      Fn::Sub: https://${TodoApi}.execute-api.${AWS::Region}.amazonaws.com/dev/
+  TodosTable:
+    Description: DynamoDB table name
+    Value:
+      Ref: TodosTable
