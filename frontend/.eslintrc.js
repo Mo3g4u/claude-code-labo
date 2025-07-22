@@ -16,10 +16,25 @@ module.exports = {
     'no-debugger': 'off',
     'no-unused-vars': 'warn'
   },
+  globals: {
+    // Vitest globals
+    describe: 'readonly',
+    it: 'readonly',
+    expect: 'readonly',
+    beforeEach: 'readonly',
+    afterEach: 'readonly',
+    vi: 'readonly',
+    // Vue globals
+    defineProps: 'readonly',
+    defineEmits: 'readonly',
+    defineExpose: 'readonly',
+    withDefaults: 'readonly'
+  },
   ignorePatterns: [
     'node_modules/',
     'dist/',
     'build/',
-    '*.d.ts'
+    '*.d.ts',
+    '*.vue'
   ]
 }

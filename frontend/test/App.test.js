@@ -78,7 +78,7 @@ describe('App.vue', () => {
 
   it('初期状態でTodoリストが空である', async () => {
     // Given
-    todoApi.getTodos.mockResolvedValue([])
+    mockTodoApi.getTodos.mockResolvedValue([])
 
     // When
     wrapper = createWrapper()
@@ -102,8 +102,8 @@ describe('App.vue', () => {
       updated_at: '2025-01-01T00:00:00'
     }
     
-    todoApi.createTodo.mockResolvedValue(newTodo)
-    todoApi.getTodos.mockResolvedValue([newTodo])
+    mockTodoApi.createTodo.mockResolvedValue(newTodo)
+    mockTodoApi.getTodos.mockResolvedValue([newTodo])
 
     wrapper = createWrapper()
     await wrapper.vm.$nextTick()
