@@ -13,17 +13,6 @@ env:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
-    
-    services:
-      dynamodb:
-        image: amazon/dynamodb-local:latest
-        ports:
-          - 8000:8000
-        options: >-
-          --health-cmd "curl -f http://localhost:8000 || exit 1"
-          --health-interval 30s
-          --health-timeout 10s
-          --health-retries 10
 
     steps:
     - uses: actions/checkout@v4
@@ -47,10 +36,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
 
-    - name: Wait for DynamoDB Local
+    - name: Start DynamoDB Local
       run: |
-        timeout 60 bash -c 'until curl -f http://localhost:8000; do sleep 2; done'
-        echo "DynamoDB Local is ready"
+        docker run -d --name dynamodb-local -p 8000:8000 amazon/dynamodb-local:latest -jar DynamoDBLocal.jar -sharedDb -inMemory
+        # Wait for DynamoDB Local to be ready
+        timeout 60 bash -c 'until curl -f http://localhost:8000; do echo "Waiting for DynamoDB Local..."; sleep 3; done'
+        echo "✅ DynamoDB Local is ready"
 
     - name: Setup DynamoDB Local table
       run: |
@@ -102,6 +93,12 @@ jobs:
         file: ./backend/coverage.xml
         flags: backend
         name: backend-coverage
+        
+    - name: Cleanup DynamoDB Local
+      if: always()
+      run: |
+        docker stop dynamodb-local || true
+        docker rm dynamodb-local || true
 
   frontend-tests:
     runs-on: ubuntu-latest
