@@ -1,0 +1,22 @@
+{
+  "GetTodosFunction": {
+    "DYNAMODB_ENDPOINT": "http://localhost:8000",
+    "TABLE_NAME": "todos"
+  },
+  "GetTodoFunction": {
+    "DYNAMODB_ENDPOINT": "http://localhost:8000",
+    "TABLE_NAME": "todos"
+  },
+  "CreateTodoFunction": {
+    "DYNAMODB_ENDPOINT": "http://localhost:8000",
+    "TABLE_NAME": "todos"
+  },
+  "UpdateTodoFunction": {
+    "DYNAMODB_ENDPOINT": "http://localhost:8000",
+    "TABLE_NAME": "todos"
+  },
+  "DeleteTodoFunction": {
+    "DYNAMODB_ENDPOINT": "http://localhost:8000",
+    "TABLE_NAME": "todos"
+  }
+}
