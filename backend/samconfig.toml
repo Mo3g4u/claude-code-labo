@@ -1,0 +1,16 @@
+version = 0.1
+
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "todo-app-backend"
+s3_bucket = ""
+s3_prefix = "todo-app-backend"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
+[default.local_start_api]
+[default.local_start_api.parameters]
+skip_pull_image = true
