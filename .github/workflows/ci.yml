@@ -101,6 +101,7 @@ jobs:
     - name: Run backend tests
       run: |
         cd backend
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)"
         pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
       env:
         DYNAMODB_ENDPOINT: http://localhost:8000
