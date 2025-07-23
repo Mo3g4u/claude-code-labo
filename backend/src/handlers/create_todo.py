@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from datetime import datetime
+from typing import Any, Dict
 
 import boto3
 from botocore.exceptions import ClientError
@@ -13,7 +14,7 @@ DYNAMODB_ENDPOINT = os.environ.get(
 TABLE_NAME = os.environ.get("TABLE_NAME", "todos")
 
 
-def get_dynamodb_client():
+def get_dynamodb_client() -> Any:
     """DynamoDB クライアントを取得"""
     return boto3.client(
         "dynamodb",
@@ -24,7 +25,7 @@ def get_dynamodb_client():
     )
 
 
-def lambda_handler(event, context):
+def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Create a new todo - minimal implementation"""
 
     try:
