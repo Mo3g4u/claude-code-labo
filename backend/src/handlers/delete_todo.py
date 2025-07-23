@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 import boto3
 from botocore.exceptions import ClientError
@@ -23,7 +23,7 @@ def get_dynamodb_client() -> Any:
     )
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Delete a todo from DynamoDB"""
 
     try:

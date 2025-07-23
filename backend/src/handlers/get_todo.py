@@ -1,9 +1,9 @@
 import json
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Get a specific todo - minimal implementation"""
 
     # Extract todo_id from path parameters
