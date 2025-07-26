@@ -18,7 +18,7 @@ start: ## Start local development environment
 	@echo "Waiting for LocalStack to be ready..."
 	sleep 10
 	@echo "Starting SAM local API..."
-	cd backend && sam local start-api --docker-network todo-app-local --parameter-overrides "TABLE_NAME=todos" &
+	cd backend && sam local start-api --docker-network todo-app-local --parameter-overrides "ParameterKey=TableName,ParameterValue=todos" &
 	@echo "Development environment started!"
 
 stop: ## Stop local development environment
@@ -41,17 +41,22 @@ test-frontend: ## Run frontend tests only
 
 lint: ## Run linting
 	@echo "Running backend linting..."
-	cd backend && flake8 src tests
-	cd backend && black --check src tests
+	cd backend && ruff check src
 	@echo "Running frontend linting..."
 	cd frontend && npm run lint
 	@echo "Linting completed!"
 
+backend-lint: ## Run backend linting only
+	cd backend && ruff check src
+
+frontend-lint: ## Run frontend linting only
+	cd frontend && npm run lint
+
 format: ## Format code
 	@echo "Formatting backend code..."
-	cd backend && black src tests
+	cd backend && ruff format src
 	@echo "Formatting frontend code..."
-	cd frontend && npm run format
+	cd frontend && npm run lint:fix
 	@echo "Code formatting completed!"
 
 clean: ## Clean up development environment
@@ -62,9 +67,24 @@ clean: ## Clean up development environment
 
 # Development shortcuts
 dev-backend: ## Start backend development server
-	cd backend && sam local start-api --docker-network todo-app-local --parameter-overrides "TABLE_NAME=todos"
+	cd backend && sam local start-api --docker-network todo-app-local --parameter-overrides "ParameterKey=TableName,ParameterValue=todos"
 
 dev-frontend: ## Start frontend development server
+	cd frontend && npm run dev
+
+# LocalStack management
+localstack-up: ## Start LocalStack
+	docker-compose up -d localstack
+	@echo "Waiting for LocalStack to be ready..."
+	sleep 10
+
+localstack-down: ## Stop LocalStack
+	docker-compose down
+
+backend-start: ## Start SAM Local API
+	cd backend && sam local start-api --docker-network todo-app-local --parameter-overrides "ParameterKey=TableName,ParameterValue=todos"
+
+frontend-start: ## Start frontend development server
 	cd frontend && npm run dev
 
 # Testing shortcuts

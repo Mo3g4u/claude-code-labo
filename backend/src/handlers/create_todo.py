@@ -7,6 +7,8 @@ from typing import Any
 import boto3
 from botocore.exceptions import ClientError
 
+from auth_helper import get_user_from_event
+
 # LocalStack環境の設定
 DYNAMODB_ENDPOINT = os.environ.get(
     "DYNAMODB_ENDPOINT", "http://host.docker.internal:4566"
@@ -29,6 +31,23 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Create a new todo - minimal implementation"""
 
     try:
+        # 認証されたユーザー情報を取得
+        try:
+            user = get_user_from_event(event)
+            user_id = user["user_id"]
+        except Exception as auth_error:
+            return {
+                "statusCode": 401,
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                },
+                "body": json.dumps(
+                    {"error": f"Authentication failed: {str(auth_error)}", "code": "UNAUTHORIZED"}
+                ),
+            }
+
         # Parse request body
         body = json.loads(event.get("body", "{}"))
 
@@ -39,6 +58,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "headers": {
                     "Content-Type": "application/json",
                     "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization",
                 },
                 "body": json.dumps(
                     {"error": "Title is required", "code": "VALIDATION_ERROR"}
@@ -46,7 +66,6 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             }
 
         # Create new todo
-        user_id = body.get("user_id", "user123")
         todo_id = str(uuid.uuid4())
         now = datetime.now().isoformat()
 
@@ -85,7 +104,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
-                "Access-Control-Allow-Headers": "Content-Type",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
             },
             "body": json.dumps(new_todo),
         }
@@ -97,6 +116,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "headers": {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
             },
             "body": json.dumps(
                 {"error": "Failed to create todo", "code": "INTERNAL_ERROR"}
@@ -108,6 +128,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "headers": {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
             },
             "body": json.dumps(
                 {"error": "Invalid JSON in request body", "code": "BAD_REQUEST"}
@@ -120,6 +141,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "headers": {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
             },
             "body": json.dumps(
                 {"error": "Internal server error", "code": "INTERNAL_ERROR"}
