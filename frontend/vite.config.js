@@ -8,7 +8,7 @@ export default defineConfig({
     quasar()
   ],
   server: {
-    port: 3000,
+    port: 5173,
     host: '0.0.0.0'
   }
 })

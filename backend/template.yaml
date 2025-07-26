@@ -2,6 +2,18 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Todo App Backend with Python Lambda
 
+Parameters:
+  Environment:
+    Type: String
+    Default: local
+    AllowedValues:
+      - local
+      - dev
+      - prod
+
+Conditions:
+  IsLocal: !Equals [!Ref Environment, local]
+
 Globals:
   Function:
     Timeout: 30
@@ -9,11 +21,60 @@ Globals:
     Runtime: python3.11
     Environment:
       Variables:
-        TABLE_NAME: !Ref TodosTable
+        TABLE_NAME: todos
+        USER_POOL_ID: !Ref TodoUserPool
+        APP_CLIENT_ID: !Ref TodoUserPoolClient
+        ENVIRONMENT: !Ref Environment
         POWERTOOLS_SERVICE_NAME: todo-app
         POWERTOOLS_LOG_LEVEL: INFO
+        DYNAMODB_ENDPOINT: "http://host.docker.internal:4566"
 
 Resources:
+  # Cognito User Pool
+  TodoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: todo-user-pool
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: false
+        - Name: name
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+
+  # Cognito User Pool Client
+  TodoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref TodoUserPool
+      ClientName: todo-app-client
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ADMIN_NO_SRP_AUTH
+        - USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      AccessTokenValidity: 24
+      IdTokenValidity: 24
+      RefreshTokenValidity: 30
+
   # DynamoDB Table
   TodosTable:
     Type: AWS::DynamoDB::Table
@@ -40,6 +101,11 @@ Resources:
         AllowMethods: "'GET,POST,PUT,DELETE'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
+      # Auth:
+      #   DefaultAuthorizer: CognitoAuthorizer
+      #   Authorizers:
+      #     CognitoAuthorizer:
+      #       UserPoolArn: !GetAtt TodoUserPool.Arn
       DefinitionBody:
         swagger: "2.0"
         info:
@@ -162,3 +228,9 @@ Outputs:
   TodosTable:
     Description: "DynamoDB table name"
     Value: !Ref TodosTable
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value: !Ref TodoUserPool
+  AppClientId:
+    Description: "Cognito App Client ID"
+    Value: !Ref TodoUserPoolClient

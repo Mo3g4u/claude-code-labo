@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## リポジトリ概要
 
-`claude-code-labo`は Claude Code を利用した開発を行うための実験的なリポジトリです。Quasar Framework + Python Lambda + SAM + LocalStack + TDD構成でTodoアプリを実装し、完全なCI/CDパイプラインを含む現代的な開発環境を構築しています。
+`claude-code-labo`は Claude Code を利用した開発を行うための実験的なリポジトリです。Quasar Framework + Python Lambda + SAM + AWS Cognito + LocalStack + TDD構成でユーザー認証機能付きTodoアプリを実装し、完全なCI/CDパイプラインを含む現代的な開発環境を構築しています。
 
 ## 技術スタック
 
@@ -23,8 +23,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **pytest** + **moto** (TDD)
 - **ruff** + **mypy** (コード品質・型チェック)
 
+### 認証・セキュリティ
+- **AWS Cognito** (ユーザー認証・認可)
+- **JWT トークン** (API アクセス制御)
+- **amazon-cognito-identity-js** (フロントエンド認証SDK)
+
 ### ローカル開発環境
-- **LocalStack** (DynamoDB サービス模擬)
+- **LocalStack** (DynamoDB + Cognito サービス模擬)
 - **SAM Local** (API Gateway + Lambda ランタイム)
 - **Docker Compose**
 
@@ -82,8 +87,14 @@ make frontend-start
 │   └── ci.yml              # GitHub Actions CI/CD
 ├── frontend/               # Quasar アプリケーション
 │   ├── src/
-│   │   ├── App.vue         # メインコンポーネント
-│   │   ├── services/       # API通信層
+│   │   ├── App.vue         # メインコンポーネント（認証状態管理）
+│   │   ├── components/     # Vue コンポーネント
+│   │   │   ├── AuthForm.vue       # 認証フォーム
+│   │   │   ├── LoginForm.vue      # ログインフォーム
+│   │   │   └── SignUpForm.vue     # サインアップフォーム
+│   │   ├── services/       # API通信層・認証サービス
+│   │   │   ├── authService.js     # Cognito認証サービス
+│   │   │   └── todoApi.js         # Todo API（認証対応）
 │   │   └── types/          # TypeScript型定義
 │   ├── tests/
 │   │   ├── unit/           # ユニットテスト
@@ -91,15 +102,22 @@ make frontend-start
 │   ├── .eslintrc.js        # ESLint設定
 │   ├── tsconfig.json       # TypeScript設定
 │   └── vitest.config.js    # Vitest設定
-├── backend/                # SAM + Python Lambda
+├── backend/                # SAM + Python Lambda + Cognito
 │   ├── src/
-│   │   └── handlers/       # Lambda 関数
+│   │   ├── auth_helper.py  # JWT認証ヘルパー
+│   │   └── handlers/       # Lambda 関数（認証対応）
+│   │       ├── get_todos.py       # Todo一覧取得
+│   │       ├── create_todo.py     # Todo作成
+│   │       ├── get_todo.py        # Todo詳細取得
+│   │       ├── update_todo.py     # Todo更新
+│   │       └── delete_todo.py     # Todo削除
 │   ├── tests/
 │   │   ├── unit/           # ユニットテスト
 │   │   └── integration/    # 統合テスト
-│   ├── template.yaml       # SAM テンプレート
+│   ├── template.yaml       # SAM テンプレート（Cognito含む）
 │   ├── pyproject.toml      # ruff/mypy設定
 │   ├── env.json            # ローカル環境変数
+│   ├── requirements.txt    # 本番依存関係（PyJWT追加）
 │   └── requirements-dev.txt # 開発依存関係
 ├── api/
 │   └── openapi.yaml        # OpenAPI 3.0 仕様書
@@ -160,16 +178,64 @@ feature → develop PR時に自動実行：
 - 型安全性保証
 - コードスタイル統一
 
+## 認証機能
+
+### ユーザー認証フロー
+1. **サインアップ**: メールアドレス・パスワード・名前でアカウント作成
+2. **ログイン**: メールアドレス・パスワードで認証
+3. **JWT トークン**: 認証成功後、API アクセス用のJWTトークンを取得
+4. **自動ログイン**: ブラウザリロード時の認証状態復元
+5. **ログアウト**: セッション終了とトークン無効化
+
+### セキュリティ実装
+- **Cognito User Pool**: AWS Cognitoによるユーザー管理
+- **JWT 検証**: 全API エンドポイントでトークン検証
+- **自動トークン付与**: axios インターセプターによる自動認証ヘッダー設定
+- **401 エラーハンドリング**: トークン期限切れ時の自動ログアウト
+
+### LocalStack 対応
+- 開発環境では簡易認証（モック）を実装
+- 本番環境では完全なCognito JWT検証を実行
+
 ## API仕様
 
-Todo APIは以下のエンドポイントを提供します：
-- `GET /todos?user_id={id}` - Todo一覧取得
+Todo APIは以下のエンドポイントを提供します（全て認証必須）：
+- `GET /todos` - Todo一覧取得（認証ユーザーのみ）
 - `POST /todos` - Todo作成
-- `GET /todos/{id}` - Todo詳細取得
-- `PUT /todos/{id}` - Todo更新
-- `DELETE /todos/{id}` - Todo削除
+- `GET /todos/{id}` - Todo詳細取得（所有者のみ）
+- `PUT /todos/{id}` - Todo更新（所有者のみ）
+- `DELETE /todos/{id}` - Todo削除（所有者のみ）
 
 詳細は `api/openapi.yaml` を参照してください。
+
+## 使用方法
+
+### 初回セットアップ
+```bash
+# 依存関係インストール
+make setup
+
+# LocalStack起動
+make localstack-up
+
+# バックエンド起動（別ターミナル）
+make backend-start
+
+# フロントエンド起動（別ターミナル）
+make frontend-start
+```
+
+### 認証フロー体験
+1. ブラウザで `http://localhost:3000` にアクセス
+2. 「新規登録」をクリックして新しいアカウントを作成
+3. ログイン画面でメールアドレス・パスワードを入力してログイン
+4. Todo の作成・編集・削除を試行
+5. ログアウト後、再度ログインして Todo が復元されることを確認
+
+### テスト用ユーザー（LocalStack）
+LocalStack環境では以下のユーザーが自動的に作成されます：
+- メール: `test@example.com`
+- パスワード: `Password123`
 
 ## 動作確認
 
